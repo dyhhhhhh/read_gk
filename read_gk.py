@@ -84,12 +84,12 @@ def all_activities(module_id):
         # 打开文件
         elif learning_activity_type == "material":
             view_material(learning_activity_id, learning_activity_type)
-        # 暂时手动答题
+        # 暂时手动答题,这种可以跳过，我这里是循环到做完
         elif learning_activity_type == "exam":
             while not check_pass_examination(learning_activity_id):
                 print("请手动答题...《{}》---》《{}》".format(course_name, learning_activity_title))
                 time.sleep(random.randint(6, 12))
-    # 考试
+    # 这种不能跳
     if exams is not None:
         for exam in exams:
             # 考试id
