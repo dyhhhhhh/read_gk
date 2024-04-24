@@ -428,7 +428,6 @@ def get_master_course_id():
     if course_id == 0:
         return
     url = "https://lms.ouchn.cn/course/{}/learning-activity/full-screen".format(course_id)
-    # url = "https://lms.ouchn.cn/course/30000083529/learning-activity/full-screen"
     response = requests.request("GET", url, headers=headers).content
     soup = BeautifulSoup(response, 'html.parser')
     masterCourseId = soup.find('input', attrs={'id': 'masterCourseId'})['value']
@@ -457,37 +456,6 @@ headers = {
 course_id = 0
 course_code = ""
 course_name = ""
-# learning_activity_payload = {
-#     "org_id": 30000000001,
-#     "user_id": "30001011626",
-#     "course_id": course_id,
-#     "enrollment_role": "student",
-#     "is_teacher": "false",
-#     # 动态添加该参数
-#     # "activity_id": activity_id,
-#     # "activity_type": activity_type,
-#     "activity_name": None,
-#     "module": None,
-#     "action": "open",
-#     "ts": int(time.time() * 1000),
-#     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
-#     "mode": "normal",
-#     "channel": "web",
-#     "target_info": {},
-#     # "master_course_id": get_master_course_id(),
-#     # 动态添加该参数
-#     # "sub_type": "pdf",
-#     # "sub_id": 17191463,
-#     "org_name": "河北开放大学",
-#     "org_code": "130",
-#     "user_no": "2413001200455",
-#     "user_name": "段雨寒",
-#     "course_code": course_code,
-#     "course_name": course_name,
-#     "dep_id": "30000000002",
-#     "dep_name": "开放教育学院",
-#     "dep_code": "1300000"
-# }
 
 # 这个信息在网站上打开f12后然后随便点进一个学习，找到末尾是这个 learning-activity 的接口然后复制你的信息就可以了
 learning_activity_payload = {
