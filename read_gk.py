@@ -377,7 +377,7 @@ def check_pass_examination(exam_activity_id):
     raw = requests.get(url=url, headers=headers)
     result = raw.json()
     code = raw.status_code
-    if int(code) == 404:
+    if int(code) != 200:
         print("还未考试")
         return False
     exam_score = result["exam_score"]
@@ -440,7 +440,8 @@ headers = {
     'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
     'cache-control': 'no-cache',
     'content-type': 'application/json',
-    'cookie': 'HWWAFSESTIME=1713762330009; HWWAFSESID=2d3152aa45b1d79351f; session=V2-30000000001-91581878-a3c8-40bd-94a9-33163da7c43f.MzAwMDEwMTE2MjY.1713851707529.sxoBuv-pclrnUmCB6BbjeOfjdxQ',
+    # 需要复制自己的cookie,打开f12随便抓个包就行
+    'cookie': '',
     'origin': 'https://lms.ouchn.cn',
     'pragma': 'no-cache',
     'priority': 'u=1, i',
@@ -456,9 +457,42 @@ headers = {
 course_id = 0
 course_code = ""
 course_name = ""
+# learning_activity_payload = {
+#     "org_id": 30000000001,
+#     "user_id": "30001011626",
+#     "course_id": course_id,
+#     "enrollment_role": "student",
+#     "is_teacher": "false",
+#     # 动态添加该参数
+#     # "activity_id": activity_id,
+#     # "activity_type": activity_type,
+#     "activity_name": None,
+#     "module": None,
+#     "action": "open",
+#     "ts": int(time.time() * 1000),
+#     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
+#     "mode": "normal",
+#     "channel": "web",
+#     "target_info": {},
+#     # "master_course_id": get_master_course_id(),
+#     # 动态添加该参数
+#     # "sub_type": "pdf",
+#     # "sub_id": 17191463,
+#     "org_name": "河北开放大学",
+#     "org_code": "130",
+#     "user_no": "2413001200455",
+#     "user_name": "段雨寒",
+#     "course_code": course_code,
+#     "course_name": course_name,
+#     "dep_id": "30000000002",
+#     "dep_name": "开放教育学院",
+#     "dep_code": "1300000"
+# }
+
+# 这个信息在网站上打开f12后然后随便点进一个学习，找到末尾是这个 learning-activity 的接口然后复制你的信息就可以了
 learning_activity_payload = {
-    "org_id": 30000000001,
-    "user_id": "30001011626",
+    "org_id": 0,
+    "user_id": "",
     "course_id": course_id,
     "enrollment_role": "student",
     "is_teacher": "false",
@@ -477,17 +511,17 @@ learning_activity_payload = {
     # 动态添加该参数
     # "sub_type": "pdf",
     # "sub_id": 17191463,
-    "org_name": "河北开放大学",
-    "org_code": "130",
-    "user_no": "2413001200455",
-    "user_name": "段雨寒",
+    "org_name": "",
+    "org_code": "",
+    "user_no": "",
+    "user_name": "",
     "course_code": course_code,
     "course_name": course_name,
-    "dep_id": "30000000002",
-    "dep_name": "开放教育学院",
-    "dep_code": "1300000"
+    "dep_id": "",
+    "dep_name": "",
+    "dep_code": ""
 }
 if __name__ == '__main__':
     # 入口
     get_myCourses()
-    # view_online_examination(30000417418)
+
