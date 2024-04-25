@@ -69,13 +69,19 @@ def all_activities(module_id):
             # 发送学习中
             post_learning_activity(learning_activity_id, learning_activity_type)
             read_video(learning_activity_id, 0, 61, duration)
+            # 观看完毕后删除相关key
+            del learning_activity_payload["sub_type"]
+            del learning_activity_payload["sub_id"]
         # 发表讨论及回复
         elif learning_activity_type == "forum":
-            # 发送学习中
-            post_learning_activity(learning_activity_id, learning_activity_type)
-            details = get_details(learning_activity_id)
-            topic_category_id = details["topic_category_id"]
-            publish_discussion(learning_activity_id, topic_category_id)
+            # 判断是否完成
+            complete = is_full(learning_activity_id, {})["completeness"]
+            if complete != "full":
+                # 发送学习中
+                post_learning_activity(learning_activity_id, learning_activity_type)
+                publish_discussion(learning_activity_id)
+            else:
+                print("已学习")
         # 外部网站
         elif learning_activity_type == "web_link":
             # 发送学习中
@@ -83,13 +89,15 @@ def all_activities(module_id):
             read_page(learning_activity_id)
         # 打开文件
         elif learning_activity_type == "material":
-            view_material(learning_activity_id, learning_activity_type)
-        # 暂时手动答题,这种可以跳过，我这里是循环到做完
+            complete = is_full(learning_activity_id, {})["completeness"]
+            if complete != "full":
+                view_material(learning_activity_id, learning_activity_type)
+        # 暂时手动答题,这种可以跳过，我这里是循环到手动做完
         elif learning_activity_type == "exam":
             while not check_pass_examination(learning_activity_id):
                 print("请手动答题...《{}》---》《{}》".format(course_name, learning_activity_title))
-                time.sleep(random.randint(6, 12))
-    # 这种不能跳
+                time.sleep(random.randint(15, 30))
+    # 考试,这种不能跳
     if exams is not None:
         for exam in exams:
             # 考试id
@@ -99,20 +107,7 @@ def all_activities(module_id):
             # 暂时手动答题
             while not check_pass_examination(exam_id):
                 print("请手动答题...《{}》---》《{}》".format(course_name, exam_title))
-                time.sleep(random.randint(6, 12))
-
-
-# 获取考试分数
-def get_score(exams):
-    # for exam in exams:
-    #     # 考试标题
-    #     title = exam["title"]
-    #     # 最高考试分数
-    #     score = exam["activity_final_score"]
-    #     print("考试的名称:" + title)
-    #     print("考试的分数:" + score)
-    pass
-
+                time.sleep(random.randint(15, 30))
 
 # 获取我的课程
 def get_myCourses():
@@ -125,6 +120,9 @@ def get_myCourses():
     # 课程json数组
     courses = response["courses"]
     for course in courses:
+        # 跳过100%的学科
+        if course["completeness"] == 100:
+            continue
         course_name = course["display_name"]
         course_id = course["id"]
         # 赋值master_course_id
@@ -141,8 +139,74 @@ def is_full(activity_id, data):
     url = "https://lms.ouchn.cn/api/course/activities-read/{}".format(activity_id)
     payload = data
     headers["referer"] = referer
+    print(payload)
     return requests.request("POST", url, headers=headers, data=payload).json()
 
+
+# # 做大作业
+# def do_homework(homework_activity_id):
+#     # 获取大作业详情
+#     detail = get_details(homework_activity_id)
+#     # 获取大作业id
+#     homework_id = detail["id"]
+#     # 大作业data
+#     homework_data = detail["data"]
+#     # 大作业类型
+#     homework_type = homework_data["homework_type"]
+#     # 描述
+#     description = homework_data["description"]
+#     if homework_type == "file_upload":
+#         do_upload_homework(description)
+#
+#
+# # 做上传类型的大作业
+# def do_upload_homework(description):
+#     # 解析要求
+#     description = BeautifulSoup(description, 'html.parser')
+#     print(description)
+#     # 找到关键字
+#     keyword = description.find_all(style="color: red;")
+#     print(str(keyword))
+#     # 暂时不做处理直接丢给ai去生成答案
+#     # do_homeworkForAi(description)
+#     # print(description)
+#
+#
+# # 引入ai去做大作业
+# def do_homeworkForAi(description):
+#     aiheaders = {
+#         'accept': '*/*',
+#         'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+#         'cache-control': 'no-cache',
+#         'content-type': 'text/plain',
+#         'origin': 'https://www.oogwayknow.com',
+#         'pragma': 'no-cache',
+#         'priority': 'u=1, i',
+#         'referer': 'https://www.oogwayknow.com/',
+#         'sec-ch-ua': '"Microsoft Edge";v="125", "Chromium";v="125", "Not.A/Brand";v="24"',
+#         'sec-ch-ua-mobile': '?0',
+#         'sec-ch-ua-platform': '"Windows"',
+#         'sec-fetch-dest': 'empty',
+#         'sec-fetch-mode': 'cors',
+#         'sec-fetch-site': 'same-origin',
+#         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0'
+#     }
+#     url = "https://www.oogwayknow.com/api/ai-chat"
+#     payload = json.dumps({
+#         "language": "zh-CN",
+#         "messages": [
+#             {
+#                 "content": "你好",
+#                 "role": "User"
+#             }
+#         ],
+#         "model": "GPT3.5",
+#         "token": "4dc6a37f28e7c3614800",
+#         "type": "ai",
+#         "userId": "13"
+#     })
+#     response = requests.request("POST", url, headers=aiheaders, data=payload)
+#     print(response)
 
 # 学习普通页面
 def read_page(page_activity_id):
@@ -159,6 +223,7 @@ def read_page(page_activity_id):
 
 # 学习视频
 def read_video(video_activity_id, start: int, end: int, duration):
+    global learning_activity_payload
     print("开始观看视频...")
     payload = json.dumps({
         "start": start,
@@ -194,30 +259,28 @@ def read_video(video_activity_id, start: int, end: int, duration):
 
 
 # 发表讨论及回帖
-def publish_discussion(learning_activity_id, topic_category_id):
-    # 判断是否完成
-    complete = is_full(learning_activity_id, {})["completeness"]
-    if complete != "full":
-        # 首先获取该讨论的已发表内容，然后进行复制回帖
-        topic = getPublished(topic_category_id)
-        title = topic["title"]
-        post_id = topic["id"]
-        content = topic["content"]
-        if len(content) != 0:
-            # 发表帖子
-            response = publish_post(topic_category_id, title, content)
-            if len(response) > 0:
-                print("发表成功")
-            else:
-                print("发表失败")
-            # 回复帖子
-            response = replies_post(post_id, content)
-            if len(response) > 0:
-                print("回复成功")
-            else:
-                print("回复失败")
-    else:
-        print("已学习")
+def publish_discussion(learning_activity_id):
+    # 获取帖子id
+    details = get_details(learning_activity_id)
+    topic_category_id = details["topic_category_id"]
+    # 首先获取该讨论的已发表内容，然后进行复制回帖
+    topic = getPublished(topic_category_id)
+    title = topic["title"]
+    post_id = topic["id"]
+    content = topic["content"]
+    if len(content) != 0:
+        # 发表帖子
+        response = publish_post(topic_category_id, title, content)
+        if len(response) > 0:
+            print("发表成功")
+        else:
+            print("发表失败")
+        # 回复帖子
+        response = replies_post(post_id, content + "。")  # 加个句号防止重复
+        if len(response) > 0:
+            print("回复成功")
+        else:
+            print("回复失败")
 
 
 # 回复帖子
@@ -273,26 +336,29 @@ def getPublished(topic_category_id, page=1):
 # 查看文件活动
 def view_material(material_activity_id, learning_activity_type):
     global learning_activity_payload
-    complete = is_full(material_activity_id, {})["completeness"]
-    if complete != "full":
-        # 获取其中所有文件，然后去访问
-        result = get_details(material_activity_id)
-        # 找到里面的上传文件
-        uploads = result["uploads"]
-        # 循环阅读文件
-        for upload in uploads:
-            time.sleep(random.randint(6, 12))
-            # 获取每个文件后缀
-            suffix = str(upload["name"]).split(".")[1]
-
-            learning_activity_payload["sub_type"] = suffix
-            learning_activity_payload["sub_id"] = uploads[0]["id"]
-            # 发送学习中
-            post_learning_activity(material_activity_id, learning_activity_type)
-            print("阅读资料:{}".format(upload["name"]))
-            complete = is_full(material_activity_id, {"upload_id": upload["id"]})
-            if complete == "full":
-                break
+    # 获取其中所有文件，然后去访问
+    result = get_details(material_activity_id)
+    # 找到里面的上传文件
+    uploads = result["uploads"]
+    # 循环阅读文件
+    for upload in uploads:
+        time.sleep(random.randint(6, 12))
+        # 获取每个文件后缀
+        suffix = str(upload["name"]).split(".")[1]
+        sub_id = uploads[0]["id"]
+        learning_activity_payload["sub_type"] = suffix
+        learning_activity_payload["sub_id"] = sub_id
+        # 发送学习中
+        post_learning_activity(material_activity_id, learning_activity_type)
+        print("阅读资料:{}".format(upload["name"]))
+        complete = is_full(material_activity_id, json.dumps({"upload_id": sub_id}))
+        print(complete)
+        if complete == "full":
+            print("阅读完毕,退出")
+            break
+    # 阅读文件后删除key
+    del learning_activity_payload["sub_type"]
+    del learning_activity_payload["sub_id"]
 
 
 # 在线形考
@@ -433,14 +499,17 @@ def get_master_course_id():
     masterCourseId = soup.find('input', attrs={'id': 'masterCourseId'})['value']
     return masterCourseId
 
-
+course_id = 0
+course_code = ""
+course_name = ""
+# 下面是需要复制自己的信息的
 headers = {
     'accept': '*/*',
     'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
     'cache-control': 'no-cache',
     'content-type': 'application/json',
     # 需要复制自己的cookie,打开f12随便抓个包就行
-    'cookie': '',
+    'cookie': 'HWWAFSESTIME=1713762330009; HWWAFSESID=2d3152aa45b1d79351f; session=V2-30000000001-91581878-a3c8-40bd-94a9-33163da7c43f.MzAwMDEwMTE2MjY.1713851707529.sxoBuv-pclrnUmCB6BbjeOfjdxQ',
     'origin': 'https://lms.ouchn.cn',
     'pragma': 'no-cache',
     'priority': 'u=1, i',
@@ -453,9 +522,6 @@ headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0',
     'x-requested-with': 'XMLHttpRequest'
 }
-course_id = 0
-course_code = ""
-course_name = ""
 
 # 这个信息在网站上打开f12后然后随便点进一个学习，找到末尾是这个 learning-activity 的接口然后复制你的信息就可以了
 learning_activity_payload = {
@@ -492,4 +558,3 @@ learning_activity_payload = {
 if __name__ == '__main__':
     # 入口
     get_myCourses()
-
