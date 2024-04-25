@@ -583,7 +583,7 @@ headers = {
     'cache-control': 'no-cache',
     'content-type': 'application/json',
     # 需要复制自己的cookie,打开f12随便抓个包就行
-    'cookie': 'HWWAFSESTIME=1713762330009; HWWAFSESID=2d3152aa45b1d79351f; session=V2-30000000001-91581878-a3c8-40bd-94a9-33163da7c43f.MzAwMDEwMTE2MjY.1713851707529.sxoBuv-pclrnUmCB6BbjeOfjdxQ',
+    'cookie': '',
     'origin': 'https://lms.ouchn.cn',
     'pragma': 'no-cache',
     'priority': 'u=1, i',
