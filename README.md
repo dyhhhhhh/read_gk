@@ -11,17 +11,17 @@
 ```
 # 个人信息
 common_payload = {
-    "user_id": "30001011626",
-    "org_id": 30000000001,
+    "user_id": "",
+    "org_id": ,
     "is_teacher": False,
     "is_student": True,
-    "org_name": "河北开放大学",
-    "org_code": "130",
-    "user_no": "2413001200455",
-    "user_name": "段雨寒",
-    "dep_id": "30000000002",
-    "dep_name": "开放教育学院",
-    "dep_code": "1300000",
+    "org_name": "",
+    "org_code": "",
+    "user_no": "",
+    "user_name": "",
+    "dep_id": "",
+    "dep_name": "",
+    "dep_code": "",
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
 }
 
