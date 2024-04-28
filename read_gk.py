@@ -127,9 +127,9 @@ def get_myCourses():
     # 课程json数组
     courses = response["courses"]
     for course in courses:
-        # 跳过100%的学科
-        # if course["completeness"] == 100:
-        #     continue
+        # 跳过完结的学科
+        if course["completeness"] >= 93:
+            continue
         course_name = course["display_name"]
         course_code = course["course_code"]
         course_id = course["id"]
@@ -230,6 +230,12 @@ def read_video(video_activity_id, start: int, end: int, duration, detail):
     })
     # 视频直接看到80%以上
     result = is_full(video_activity_id, payload)
+
+    module_id = detail["module_id"]
+    syllabus_id = detail["syllabus_id"]
+    sub_id = common_payload["sub_id"]
+    # 模拟点进去观看，这一次只记录观看次数+1
+    do_online_video(video_activity_id, module_id, syllabus_id, sub_id, 0, 0, "view")
     # 继续观看,从上次一次观看的最大时长开始往后观看
     data = result["data"]
     ranges = data["ranges"]
@@ -237,22 +243,17 @@ def read_video(video_activity_id, start: int, end: int, duration, detail):
         for r in rang:
             end = max(r, end)
     print("视频时长->{}".format(duration))
-
-    recursion_watch_video(duration, video_activity_id, start, end,
-                          detail["module_id"], detail["syllabus_id"],
-                          common_payload["sub_id"], )
+    # 发送观看时长
+    # # 发送观看中
+    recursion_watch_video(duration, video_activity_id,  end, module_id, syllabus_id, sub_id)
 
 
 # 递归观看视频
-def recursion_watch_video(duration, video_activity_id, start, end, module_id, syllabus_id, sub_id):
+def recursion_watch_video(duration, video_activity_id,  end, module_id, syllabus_id, sub_id):
     # 计算是否观看到80%
-    if end < duration * 0.85:
-        # 发送观看时长
-        do_user_visits(end)
-        # 发送观看中
-        do_online_video(video_activity_id, module_id, syllabus_id, sub_id, start, end)
+    if end < duration * 0.80:
         # 延迟
-        time.sleep(random.randint(8, 15))
+        time.sleep(random.randint(5, 10))
         print("继续观看")
         # 递归观看随机1分钟以上直到通过
         rand = random.randint(1, 5)
@@ -261,15 +262,27 @@ def recursion_watch_video(duration, video_activity_id, start, end, module_id, sy
             end = end + 60 + rand
         else:
             end = end + duration - end
+        payload = json.dumps({
+            "start": start,
+            "end": end
+        })
+        # 发送观看时长
+        do_user_visits(end - start)
+        # 发送观看中
+        do_online_video(video_activity_id, module_id, syllabus_id, sub_id, start, end, "play")
+        # 记录观看到哪里了
+        print(payload)
+        print(is_full(video_activity_id, payload))
         print("start:" + str(start))
         print("end:" + str(end))
-        recursion_watch_video(duration, video_activity_id, start, end, module_id, syllabus_id, sub_id)
+        recursion_watch_video(duration, video_activity_id, end, module_id, syllabus_id, sub_id)
     else:
         print("观看完毕")
 
 
 # 发送online_video
-def do_online_video(activity_id, module_id, syllabus_id, upload_id, start, end):
+def do_online_video(activity_id, module_id, syllabus_id, upload_id, start, end, action_type):
+    time.sleep(3)
     global common_payload
     url = "https://lms.ouchn.cn/statistics/api/online-videos"
     referer = "https://lms.ouchn.cn/course/{}/learning-activity/full-screen".format(course_id)
@@ -282,18 +295,18 @@ def do_online_video(activity_id, module_id, syllabus_id, upload_id, start, end):
     local_payload["reply_id"] = None
     local_payload["comment_id"] = None
     local_payload["forum_type"] = ""
-    local_payload["action_type"] = "play"
+    local_payload["action_type"] = action_type
     local_payload["ts"] = int(time.time() * 1000)
     local_payload["meeting_type"] = "online_video"
     local_payload["start_at"] = start
     local_payload["end_at"] = end
     local_payload["duration"] = end - start
-
     print(requests.request("POST", url, headers=headers, data=json.dumps(local_payload)))
 
 
 # 发送user-visits
 def do_user_visits(end):
+    time.sleep(3)
     global common_payload
     url = "https://lms.ouchn.cn/statistics/api/user-visits"
     referer = "https://lms.ouchn.cn/course/{}/learning-activity/full-screen".format(course_id)
@@ -303,7 +316,6 @@ def do_user_visits(end):
     local_payload["browser"] = "edge"
     local_payload["activity_type"] = "online_video"
     local_payload["auto_interval"] = True
-
     print(requests.request("POST", url, headers=headers, data=json.dumps(local_payload)))
 
 
@@ -402,13 +414,12 @@ def view_material(material_activity_id, learning_activity_type):
         post_learning_activity(learning_activity_type)
         print("阅读资料:{}".format(upload["name"]))
         complete = is_full(material_activity_id, json.dumps({"upload_id": sub_id}))
-        print(complete)
         if complete == "full":
             print("阅读完毕,退出")
             break
     # 阅读文件后删除key
-    del learning_activity_payload["sub_type"]
-    del learning_activity_payload["sub_id"]
+    del local_payload["sub_type"]
+    del local_payload["sub_id"]
 
 
 # 在线形考
@@ -489,7 +500,7 @@ def view_material(material_activity_id, learning_activity_type):
 
 # 判断当前活动是否完成
 def is_full(activity_id, data):
-    time.sleep(random.randint(8, 15))
+    time.sleep(random.randint(3, 5))
     referer = "https://lms.ouchn.cn/course/{}/learning-activity/full-screen".format(course_id)
     url = "https://lms.ouchn.cn/api/course/activities-read/{}".format(activity_id)
     payload = data
@@ -512,7 +523,7 @@ def check_pass_examination(exam_activity_id):
         if exam_score_int < 60:
             return False
     except ValueError:
-        print(result)
+        print(ValueError)
         return False
     return True
 
