@@ -50,4 +50,5 @@ headers = {
 ```
 # 重要配置(java)在代码中修改src/main/java/com/dyhhhhh/common/PersonalInformation.java即可
 Java版本用okhttp、fastjson2和jsoup包，用了策略模式去解耦。
+# 有任何问题都可以直接联系我qq:1613203335
 # 觉得好用的麻烦帮忙点个小星星哦，一直持续更新中
