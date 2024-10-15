@@ -20,14 +20,6 @@ def courses_modules():
         print(module_name)
         # 获取当前学习活动的情况
         all_activities(module_id)
-        # 下面的子任务
-        # module_syllabuses = list(module["syllabuses"])
-        # for syllabus in module_syllabuses:
-        #     # 子任务id
-        #     syllabus_id = syllabus["id"]
-        #     # 子任务名称
-        #     syllabus_name = syllabus["summary"]
-
 
 # 获取当前学习活动的情况
 def all_activities(module_id):
@@ -48,7 +40,9 @@ def all_activities(module_id):
         learning_activity_id = learning_activity["id"]
         learning_activity_title = learning_activity["title"]
         learning_activity_type = learning_activity["type"]
-
+        if learning_activity_id in completed_learning_activity:
+            print("跳过当前课程:" + learning_activity_title)
+            continue
         common_payload["activity_id"] = learning_activity_id
         print("《{}》-----类型:{}".format(learning_activity_title, learning_activity_type))
         # 普通页面
@@ -127,8 +121,8 @@ def get_myCourses():
     # 课程json数组
     courses = response["courses"]
     for course in courses:
-        # 跳过完结的学科
-        if course["completeness"] >= 93:
+        completeness = course["completeness"]
+        if completeness is not None and completeness > 93:
             continue
         course_name = course["display_name"]
         course_code = course["course_code"]
@@ -140,75 +134,24 @@ def get_myCourses():
         common_payload["course_name"] = course_name
         common_payload["master_course_id"] = master_course_id
         print("当前任务:{}".format(course_name))
+        # 查询该课程已完成的任务
+        my_completeness(course_id)
         courses_modules()
 
 
-# # 做大作业
-# def do_homework(homework_activity_id):
-#     # 获取大作业详情
-#     detail = get_details(homework_activity_id)
-#     # 获取大作业id
-#     homework_id = detail["id"]
-#     # 大作业data
-#     homework_data = detail["data"]
-#     # 大作业类型
-#     homework_type = homework_data["homework_type"]
-#     # 描述
-#     description = homework_data["description"]
-#     if homework_type == "file_upload":
-#         do_upload_homework(description)
-#
-#
-# # 做上传类型的大作业
-# def do_upload_homework(description):
-#     # 解析要求
-#     description = BeautifulSoup(description, 'html.parser')
-#     print(description)
-#     # 找到关键字
-#     keyword = description.find_all(style="color: red;")
-#     print(str(keyword))
-#     # 暂时不做处理直接丢给ai去生成答案
-#     # do_homeworkForAi(description)
-#     # print(description)
-#
-#
-# # 引入ai去做大作业
-# def do_homeworkForAi(description):
-#     aiheaders = {
-#         'accept': '*/*',
-#         'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-#         'cache-control': 'no-cache',
-#         'content-type': 'text/plain',
-#         'origin': 'https://www.oogwayknow.com',
-#         'pragma': 'no-cache',
-#         'priority': 'u=1, i',
-#         'referer': 'https://www.oogwayknow.com/',
-#         'sec-ch-ua': '"Microsoft Edge";v="125", "Chromium";v="125", "Not.A/Brand";v="24"',
-#         'sec-ch-ua-mobile': '?0',
-#         'sec-ch-ua-platform': '"Windows"',
-#         'sec-fetch-dest': 'empty',
-#         'sec-fetch-mode': 'cors',
-#         'sec-fetch-site': 'same-origin',
-#         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0'
-#     }
-#     url = "https://www.oogwayknow.com/api/ai-chat"
-#     payload = json.dumps({
-#         "language": "zh-CN",
-#         "messages": [
-#             {
-#                 "content": "你好",
-#                 "role": "User"
-#             }
-#         ],
-#         "model": "GPT3.5",
-#         "token": "4dc6a37f28e7c3614800",
-#         "type": "ai",
-#         "userId": "13"
-#     })
-#     response = requests.request("POST", url, headers=aiheaders, data=payload)
-#     print(response)
 
-# 学习普通页面
+# 获取已完成的课程
+def my_completeness(course_id):
+    # 将课程id传过去，该接口会查询出学习完成的任务
+    url = "https://lms.ouchn.cn/api/course/{}/my-completeness".format(course_id)
+    referer = "https://lms.ouchn.cn/course/{}/ng".format(course_id)
+    headers["referer"] = referer
+    response = requests.request("GET", url, headers=headers).json()
+    completed_result = response["completed_result"]
+    completed = completed_result["completed"]
+    completed_learning_activity.update(completed["learning_activity"])
+
+
 def read_page(page_activity_id):
     print("开始阅读...")
     # 判断任务是否完成
@@ -228,7 +171,6 @@ def read_video(video_activity_id, start: int, end: int, duration, detail):
         "start": start,
         "end": end
     })
-    # 视频直接看到80%以上
     result = is_full(video_activity_id, payload)
 
     module_id = detail["module_id"]
@@ -245,11 +187,11 @@ def read_video(video_activity_id, start: int, end: int, duration, detail):
     print("视频时长->{}".format(duration))
     # 发送观看时长
     # # 发送观看中
-    recursion_watch_video(duration, video_activity_id,  end, module_id, syllabus_id, sub_id)
+    recursion_watch_video(duration, video_activity_id, end, module_id, syllabus_id, sub_id)
 
 
 # 递归观看视频
-def recursion_watch_video(duration, video_activity_id,  end, module_id, syllabus_id, sub_id):
+def recursion_watch_video(duration, video_activity_id, end, module_id, syllabus_id, sub_id):
     # 计算是否观看到80%
     if end < duration * 0.80:
         # 延迟
@@ -344,20 +286,6 @@ def publish_discussion(learning_activity_id):
             print("回复失败")
 
 
-# 回复帖子
-def replies_post(post_id, content):
-    print("开始回复帖子...")
-    time.sleep(random.randint(8, 15))
-    url = "https://lms.ouchn.cn/api/topics/{}/replies".format(post_id)
-    referer = "https://lms.ouchn.cn/course/{}/topic/{}".format(course_id, post_id)
-    headers["referer"] = referer
-    payload = json.dumps({
-        "content": content,
-        "uploads": []
-    })
-    return requests.request("POST", url, headers=headers, data=payload).json()
-
-
 # 发表帖子
 def publish_post(topic_category_id, title, content):
     print("开始发表帖子...")
@@ -371,6 +299,20 @@ def publish_post(topic_category_id, title, content):
     referer = "https://lms.ouchn.cn/course/{}/learning-activity/full-screen".format(course_id)
     url = "https://lms.ouchn.cn/api/topics"
     headers["referer"] = referer
+    return requests.request("POST", url, headers=headers, data=payload).json()
+
+
+# 回复帖子
+def replies_post(post_id, content):
+    print("开始回复帖子...")
+    time.sleep(random.randint(8, 15))
+    url = "https://lms.ouchn.cn/api/topics/{}/replies".format(post_id)
+    referer = "https://lms.ouchn.cn/course/{}/topic/{}".format(course_id, post_id)
+    headers["referer"] = referer
+    payload = json.dumps({
+        "content": content,
+        "uploads": []
+    })
     return requests.request("POST", url, headers=headers, data=payload).json()
 
 
@@ -420,82 +362,6 @@ def view_material(material_activity_id, learning_activity_type):
     # 阅读文件后删除key
     del local_payload["sub_type"]
     del local_payload["sub_id"]
-
-
-# 在线形考
-# def view_online_examination(exam_activity_id):
-#     # 校验是否完成考试
-#     is_adopt = check_pass_examination(exam_activity_id)
-#     if bool(is_adopt) is not True:
-#         # 获取考试详情
-#         detail = get_detail_exam(exam_activity_id)
-#         print(detail)
-#
-#
-# # 获取考题
-# def get_exam_questions(exam_activity_id):
-#     referer = "https://lms.ouchn.cn/exam/{}/subjects".format(exam_activity_id)
-#     headers["referer"] = referer
-#     url = "https://lms.ouchn.cn/api/exams/{}/distribute".format(exam_activity_id)
-#     subjects = requests.get(url, headers).json()
-#     # 获取题型及做题
-#     subjects = subjects["subjects"]
-#     for subject in subjects:
-#         # 创建对象用来返回答案
-#         my_answer = {}
-#         # 单选
-#         if subject["type"] == "single_selection":
-#             do_single_selection(subject, my_answer)
-#
-#
-# # 单选
-# def do_single_selection(subject, my_answer):
-#     # 获取题目纯文本
-#     exam_title = subject["description"]
-#     exam_title = BeautifulSoup(exam_title, 'html.parser').text
-#
-#     answer = get_answer(exam_title)
-#     # 获取选项
-#     options = subject["options"]
-#     # 遍历选项找到合适的答案
-#     for option in options:
-#         print(subject)
-#
-#
-# # 在外部找到答案
-# def get_answer(topic):
-#     pass
-#
-#
-# # 提交最终答案
-# def Submit_final_answer(exam_activity_id):
-#     url = "https://lms.ouchn.cn/api/exams/{}/submissions".format(exam_activity_id)
-#     payload = {
-#         "exam_paper_instance_id": 30073059087,
-#         "exam_submission_id": 30074824586,
-#         "subjects": [
-#             {
-#                 "subject_id": 30018602518,
-#                 "subject_updated_at": "2024-04-07T01:53:58Z",
-#                 "answer_option_ids": [30049816884]
-#             },
-#             {
-#                 "subject_id": 30018602524,
-#                 "subject_updated_at": "2024-04-07T01:53:58Z",
-#                 "answer_option_ids": [30049816891]
-#             },
-#             {
-#                 "subject_id": 30018602532,
-#                 "subject_updated_at": "2024-04-07T01:53:58Z",
-#                 "answer_option_ids": [30049816907]
-#             },
-#             {
-#                 "subject_id": 30018602535,
-#                 "subject_updated_at": "2024-04-07T01:53:58Z",
-#                 "answer_option_ids": [30049816910]
-#             }
-#         ],
-#         "progress": {"answered_num": 4, "total_subjects": 6}, "reason": "user"}
 
 
 # 判断当前活动是否完成
@@ -587,13 +453,12 @@ def get_master_course_id():
     masterCourseId = soup.find('input', attrs={'id': 'masterCourseId'})['value']
     return masterCourseId
 
-
+# 需要复制自己的cookie,打开f12随便抓个包就行
 headers = {
     'accept': '*/*',
     'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
     'cache-control': 'no-cache',
     'content-type': 'application/json',
-    # 需要复制自己的cookie,打开f12随便抓个包就行
     'cookie': '',
     'origin': 'https://lms.ouchn.cn',
     'pragma': 'no-cache',
@@ -626,6 +491,8 @@ common_payload = {
     "dep_code": "",
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
 }
+# 该容器保存总完成任务数和列表
+completed_learning_activity = set()
 
 if __name__ == '__main__':
     # 入口
