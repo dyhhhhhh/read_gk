@@ -47,6 +47,3 @@ headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0',
     'x-requested-with': 'XMLHttpRequest'
 }
-```
-# 重要配置(java)在代码中修改src/main/java/com/dyhhhhh/common/PersonalInformation.java即可
-Java版本用okhttp、fastjson2和jsoup包，用了策略模式去解耦。
