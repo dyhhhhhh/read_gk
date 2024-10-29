@@ -21,6 +21,7 @@ def courses_modules():
         # 获取当前学习活动的情况
         all_activities(module_id)
 
+
 # 获取当前学习活动的情况
 def all_activities(module_id):
     global common_payload
@@ -55,11 +56,18 @@ def all_activities(module_id):
             # 获取视频信息
             details = get_details(learning_activity_id)
             uploads = details["uploads"]
+            # 获取视频信息
             videos = uploads[0]["videos"]
+            # 获取音频信息
+            audits = uploads[0]["audio"]
 
             common_payload["sub_type"] = str(uploads[0]["name"]).split(".")[1]
             common_payload["sub_id"] = uploads[0]["id"]
-            duration = videos[0]["duration"]
+
+            if len(list(videos)) == 0:
+                duration = audits["duration"]
+            else:
+                duration = videos[0]["duration"]
             # 发送学习中
             post_learning_activity(learning_activity_type)
 
@@ -92,17 +100,17 @@ def all_activities(module_id):
             # while not check_pass_examination(learning_activity_id):
             #     print("请手动答题...《{}》---》《{}》".format(course_name, learning_activity_title))
             #     time.sleep(random.randint(30, 60))
-    # 考试,这种不能跳
-    if exams is not None:
-        for exam in exams:
-            # 考试id
-            exam_id = exam["id"]
-            # 考试名称
-            exam_title = exam["title"]
-            # 暂时手动答题
-            while not check_pass_examination(exam_id):
-                print("请手动答题...《{}》---》《{}》".format(course_name, exam_title))
-                time.sleep(60)
+    # # 考试,这种不能跳
+    # if exams is not None:
+    #     for exam in exams:
+    #         # 考试id
+    #         exam_id = exam["id"]
+    #         # 考试名称
+    #         exam_title = exam["title"]
+    #         # 暂时手动答题
+    #         while not check_pass_examination(exam_id):
+    #             print("请手动答题...《{}》---》《{}》".format(course_name, exam_title))
+    #             time.sleep(60)
 
 
 # 获取考试分数
@@ -139,7 +147,6 @@ def get_myCourses():
         courses_modules()
 
 
-
 # 获取已完成的课程
 def my_completeness(course_id):
     # 将课程id传过去，该接口会查询出学习完成的任务
@@ -174,16 +181,18 @@ def read_video(video_activity_id, start: int, end: int, duration, detail):
     result = is_full(video_activity_id, payload)
 
     module_id = detail["module_id"]
+
     syllabus_id = detail["syllabus_id"]
     sub_id = common_payload["sub_id"]
     # 模拟点进去观看，这一次只记录观看次数+1
     do_online_video(video_activity_id, module_id, syllabus_id, sub_id, 0, 0, "view")
     # 继续观看,从上次一次观看的最大时长开始往后观看
     data = result["data"]
-    ranges = data["ranges"]
-    for rang in ranges:
-        for r in rang:
-            end = max(r, end)
+    if len(dict(data)) != 0:
+        ranges = data["ranges"]
+        for rang in ranges:
+            for r in rang:
+                end = max(r, end)
     print("视频时长->{}".format(duration))
     # 发送观看时长
     # # 发送观看中
@@ -224,7 +233,7 @@ def recursion_watch_video(duration, video_activity_id, end, module_id, syllabus_
 
 # 发送online_video
 def do_online_video(activity_id, module_id, syllabus_id, upload_id, start, end, action_type):
-    time.sleep(3)
+    time.sleep(5)
     global common_payload
     url = "https://lms.ouchn.cn/statistics/api/online-videos"
     referer = "https://lms.ouchn.cn/course/{}/learning-activity/full-screen".format(course_id)
@@ -248,7 +257,7 @@ def do_online_video(activity_id, module_id, syllabus_id, upload_id, start, end, 
 
 # 发送user-visits
 def do_user_visits(end):
-    time.sleep(3)
+    time.sleep(5)
     global common_payload
     url = "https://lms.ouchn.cn/statistics/api/user-visits"
     referer = "https://lms.ouchn.cn/course/{}/learning-activity/full-screen".format(course_id)
@@ -267,10 +276,14 @@ def publish_discussion(learning_activity_id):
     details = get_details(learning_activity_id)
     topic_category_id = details["topic_category_id"]
     # 首先获取该讨论的已发表内容，然后进行复制回帖
-    topic = getPublished(topic_category_id)
-    title = topic["title"]
-    post_id = topic["id"]
-    content = topic["content"]
+    try:
+        topic = getPublished(topic_category_id)
+        title = topic["title"]
+        post_id = topic["id"]
+        content = topic["content"]
+    except Exception as e:
+        print(e)
+        return
     if len(content) != 0:
         # 发表帖子
         response = publish_post(topic_category_id, title, content)
@@ -366,7 +379,7 @@ def view_material(material_activity_id, learning_activity_type):
 
 # 判断当前活动是否完成
 def is_full(activity_id, data):
-    time.sleep(random.randint(3, 5))
+    time.sleep(random.randint(5, 8))
     referer = "https://lms.ouchn.cn/course/{}/learning-activity/full-screen".format(course_id)
     url = "https://lms.ouchn.cn/api/course/activities-read/{}".format(activity_id)
     payload = data
@@ -386,7 +399,7 @@ def check_pass_examination(exam_activity_id):
     exam_score = result["exam_score"]
     try:
         exam_score_int = int(exam_score)
-        if exam_score_int < 60:
+        if exam_score_int < 0:
             return False
     except ValueError:
         print(ValueError)
@@ -413,6 +426,7 @@ def verify_personal_information(content: str):
 
 # 获取活动详情
 def get_details(video_activity_id):
+    time.sleep(3)
     referer = "https://lms.ouchn.cn/course/{}/learning-activity/full-screen".format(course_id)
     headers["referer"] = referer
     url = "https://lms.ouchn.cn/api/activities/{}".format(video_activity_id)
@@ -453,12 +467,14 @@ def get_master_course_id():
     masterCourseId = soup.find('input', attrs={'id': 'masterCourseId'})['value']
     return masterCourseId
 
+
 # 需要复制自己的cookie,打开f12随便抓个包就行
 headers = {
     'accept': '*/*',
     'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
     'cache-control': 'no-cache',
     'content-type': 'application/json',
+    # cookie信息
     'cookie': '',
     'origin': 'https://lms.ouchn.cn',
     'pragma': 'no-cache',
@@ -472,11 +488,11 @@ headers = {
     'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0',
     'x-requested-with': 'XMLHttpRequest'
 }
-course_id = 0
+
 course_code = ""
 course_name = ""
 master_course_id = 0
-# 个人信息
+# 个人信息  learning-activity 的接口 参数
 common_payload = {
     "user_id": "",
     "org_id": ,
