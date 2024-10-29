@@ -8,6 +8,7 @@
 延迟不要关,否则连接太多容易挂掉。里面还有一些代码未完善，不影响运行。
 # 重要配置(python)在代码中找到如下配置修改即可
 ##### 这个信息在国家开放平台网站上打开f12后然后随便点进一个学习，找到末尾是这个 learning-activity 的接口然后复制你的信息就可以了
+![b26e95ebd78e71ab1b21356c428bd49](https://github.com/user-attachments/assets/9885271f-8960-4ae5-90d2-e0d9e62b4113)
 ```
 # 个人信息
 common_payload = {
@@ -27,6 +28,7 @@ common_payload = {
 
 ```
 ##### 需要复制自己的cookie,打开f12随便抓个包就行
+![83b85dceb927631cae32dbd19cb87fd](https://github.com/user-attachments/assets/62f6531a-f6d2-4cfb-b454-30668bc3d3d6)
 ```
 headers = {
     'accept': '*/*',
