@@ -362,7 +362,7 @@ def view_material(material_activity_id, learning_activity_type):
         time.sleep(random.randint(8, 15))
         # 获取每个文件后缀
         suffix = str(upload["name"]).split(".")[1]
-        sub_id = uploads[0]["id"]
+        sub_id = upload["id"]
         local_payload["sub_type"] = suffix
         local_payload["sub_id"] = sub_id
         # 发送学习中
